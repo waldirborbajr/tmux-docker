@@ -3,49 +3,57 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: tmux-docker <remote_ip:port>")
+		fmt.Print("Usage: tmux-docker <remote_host>")
 		os.Exit(1)
 	}
-
 	remoteHost := os.Args[1]
-
-	for {
-		fmt.Print(getContainerNames(remoteHost))
-	}
+	fmt.Print(getContainerCounts(remoteHost))
 }
 
-func getContainerNames(host string) string {
+func getContainerCounts(host string) string {
 	cli, err := client.NewClientWithOpts(
 		client.WithHost(fmt.Sprintf("tcp://%s", host)),
 		client.WithAPIVersionNegotiation(),
+		client.WithTimeout(5*time.Second),
 	)
 	if err != nil {
-		return fmt.Sprintf("Error connecting to Docker: %v", err)
+		return fmt.Sprintf("Docker conn error")
 	}
 	defer cli.Close()
 
-	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
+	ctx := context.Background()
+
+	runningContainers, err := cli.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
-		return fmt.Sprintf("Error listing containers: %v", err)
+		return fmt.Sprintf("Docker list error")
 	}
+	running := len(runningContainers)
 
-	var names []string
-	for _, container := range containers {
-		names = append(names, strings.TrimPrefix(container.Names[0], "/"))
+	allContainers, err := cli.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		return fmt.Sprintf("Docker list all error")
 	}
+	total := len(allContainers)
 
-	if len(names) == 0 {
-		return "No running containers"
+	diedFilter := filters.NewArgs()
+	diedFilter.Add("status", "exited")
+	diedContainers, err := cli.ContainerList(ctx, container.ListOptions{All: true, Filters: diedFilter})
+	if err != nil {
+		return fmt.Sprintf("Docker list died error")
 	}
+	died := len(diedContainers)
 
-	return strings.Join(names, ", ")
+	down := total - running - died
+
+	return fmt.Sprintf("R:%d D:%d X:%d", running, down, died)
 }
