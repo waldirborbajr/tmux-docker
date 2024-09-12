@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
-
-const refreshInterval = 10 * time.Second
 
 func main() {
 	if len(os.Args) < 2 {
@@ -23,7 +20,6 @@ func main() {
 
 	for {
 		fmt.Print(getContainerNames(remoteHost))
-		time.Sleep(refreshInterval)
 	}
 }
 
