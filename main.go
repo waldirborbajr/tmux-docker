@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -13,8 +13,21 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+var version = "<<development version>>"
+
+var _usage = `tmux-docker ` + version + `
+Usage: tmux-docker [options] [dir]
+
+tmux-docker prints the status of a Git working tree as a tmux format string.
+
+Options:
+  -V              prints tmux-docker version and exits.
+`
+
 // Main function
 func main() {
+	parseOptions()
+
 	// Load server configuration and password from .tmux-docker-env file
 	server, password := getServerFromEnv()
 	// Connect to the remote server via SSH
@@ -33,6 +46,20 @@ func main() {
 	totalContainers, upContainers, downContainers, diedContainers := parseDockerOutput(output)
 	// Display information in tmux status bar
 	displayToTmux(totalContainers, upContainers, downContainers, diedContainers)
+}
+
+func parseOptions() {
+	versionOpt := flag.Bool("V", false, "")
+
+	flag.Usage = func() {
+		fmt.Println(_usage)
+	}
+	flag.Parse()
+
+	if *versionOpt {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 }
 
 // Function to load user, server IP, and password from .tmux-docker-env
@@ -124,8 +151,13 @@ func parseDockerOutput(output string) (int, int, int, int) {
 
 // Function to display results in tmux status bar
 func displayToTmux(total, up, down, died int) {
-	cmd := exec.Command("tmux", "set-option", "-g", "status-right", fmt.Sprintf("Total: %d | Up: %d | Down: %d | Died: %d", total, up, down, died))
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to update tmux: %v", err)
-	}
+	// fmt.Sprintf("T: %d | U: %d | D: %d | X: %d", total, up, down, died)
+	fmt.Fprintln(os.Stdout, "T: ", total, " | U: ", up, " | D: ", down, " | X: ", died)
 }
+
+// func displayToTmux(total, up, down, died int) {
+// 	cmd := exec.Command("tmux", "set-option", "-g", "status-right", fmt.Sprintf("Total: %d | Up: %d | Down: %d | Died: %d", total, up, down, died))
+// 	if err := cmd.Run(); err != nil {
+// 		log.Fatalf("Failed to update tmux: %v", err)
+// 	}
+// }
