@@ -1,78 +1,85 @@
-# Docker Status CLI
+# Tmux Docker Monitor
 
-This project is a CLI tool written in Go that connects to a remote server via SSH, retrieves Docker container information, and displays the results in the `tmux` status bar. The CLI provides an overview of the total containers, active containers (Up), inactive containers (Down), and dead containers (Died).
+This Go application monitors Docker containers on a remote server and displays their status in the Tmux status bar.
 
-## Features
+## Recent Changes
 
-- Connects to a remote server via SSH.
-- Retrieves Docker container information (total, active, inactive, dead).
-- Displays status in the `tmux` status bar.
-
-## Requirements
-
-- Go 1.18+
-- Docker installed on the remote server.
-- `tmux` installed locally.
-- A `.env` file containing remote server credentials.
+1. The configuration file has been renamed from `.env` to `.tmux-docker-env`.
+2. The `.tmux-docker-env` file is now located in the user's home directory (`~/`).
+3. The binary is now installed in `~/.local/bin/`.
+4. All comments in the code have been translated from Portuguese to English.
 
 ## Installation
 
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/your-username/docker-status-cli.git
-   cd docker-status-cli
+1. Ensure you have Go installed on your system.
+2. Clone this repository:
+   ```
+   git clone https://github.com/yourusername/tmux-docker-monitor.git
+   cd tmux-docker-monitor
+   ```
+3. Build the application:
+   ```
+   go build -o ~/.local/bin/tmux-docker-monitor
    ```
 
-2. Install the Go dependencies:
+## Configuration
 
-   ```bash
-   go mod tidy
+1. Create a `.tmux-docker-env` file in your home directory:
+   ```
+   touch ~/.tmux-docker-env
    ```
 
-3. Create a `.env` file in the root directory of the project with the following variables:
-
-   ```dotenv
-   DOCKER_USER=user         # SSH username
-   REMOTE_SERVER_IP=192.168.1.19   # IP or hostname of the remote server
-   DOCKER_PASSWORD=password # SSH user's password
+2. Add the following content to the `.tmux-docker-env` file, replacing the values with your actual server details:
    ```
-
-4. Build the CLI:
-
-   ```bash
-   go build -o docker-status
+   DOCKER_USER=your_username
+   REMOTE_SERVER_IP=your_server_ip
+   DOCKER_PASSWORD=your_password
    ```
 
 ## Usage
 
-Run the CLI with the credentials specified in the `.env` file. Ensure that `tmux` is running:
+1. Ensure Tmux is running.
+2. Execute the Tmux Docker Monitor:
+   ```
+   ~/.local/bin/tmux-docker-monitor
+   ```
 
-```bash
-./docker-status
+The Tmux status bar will now display information about your Docker containers in the following format:
+
+```
+Total: X | Up: Y | Down: Z | Died: W
 ```
 
-### Example of the output displayed in the `tmux` status bar:
+Where:
+- X is the total number of containers
+- Y is the number of running containers
+- Z is the number of stopped containers
+- W is the number of containers in a "dead" state
+
+## Automating Execution
+
+To have the Tmux Docker Monitor run automatically when you start Tmux, add the following line to your `~/.tmux.conf` file:
 
 ```
-Total: 5 | Up: 3 | Down: 1 | Died: 1
+set-option -g status-interval 60
+run-shell "~/.local/bin/tmux-docker-monitor"
 ```
 
-## Code Structure
+This will update the status every 60 seconds. Adjust the interval as needed.
 
-- **`main.go`**: The main file that contains the logic to connect to the remote server, retrieve Docker information, and display the status in `tmux`.
-- **Main Functions**:
-  - `getServerFromEnv`: Reads connection credentials from the `.env` file.
-  - `connectToServer`: Connects to the remote server via SSH.
-  - `getDockerInfo`: Executes the `docker ps -a` command on the remote server.
-  - `parseDockerOutput`: Parses the Docker output and counts total containers, active, inactive, and dead containers.
-  - `displayToTmux`: Updates the `tmux` status bar with the container information.
+## Troubleshooting
 
-## Contributions
+If you encounter any issues:
 
-Feel free to submit pull requests with improvements, bug fixes, or new features.
+1. Ensure the `.tmux-docker-env` file is correctly placed and formatted.
+2. Check that the binary is correctly installed in `~/.local/bin/`.
+3. Verify that you have SSH access to the remote server.
+4. Ensure the remote server has Docker installed and that your user has permissions to run Docker commands.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
+[MIT License](LICENSE)
