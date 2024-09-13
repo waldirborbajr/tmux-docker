@@ -1,116 +1,78 @@
-# tmux-docker
+# Docker Status CLI
 
-A tmux plugin that displays the names of running Docker containers on a remote server in the status bar, refreshing every 10 seconds.
+This project is a CLI tool written in Go that connects to a remote server via SSH, retrieves Docker container information, and displays the results in the `tmux` status bar. The CLI provides an overview of the total containers, active containers (Up), inactive containers (Down), and dead containers (Died).
+
+## Features
+
+- Connects to a remote server via SSH.
+- Retrieves Docker container information (total, active, inactive, dead).
+- Displays status in the `tmux` status bar.
 
 ## Requirements
 
-- Go 1.16 or higher
-- tmux 3.0 or higher
-- Docker running on a remote server with API enabled
+- Go 1.18+
+- Docker installed on the remote server.
+- `tmux` installed locally.
+- A `.env` file containing remote server credentials.
 
 ## Installation
 
-### Manual Installation
-
 1. Clone the repository:
 
-   ```
-   git clone https://github.com/yourusername/tmux-docker.git ~/.tmux/plugins/tmux-docker
-   ```
-
-2. Build the plugin:
-
-   ```
-   cd ~/.tmux/plugins/tmux-docker
-   go build -o tmux-docker
+   ```bash
+   git clone https://github.com/your-username/docker-status-cli.git
+   cd docker-status-cli
    ```
 
-3. Add the following lines to your `~/.tmux.conf` file:
+2. Install the Go dependencies:
 
-   ```
-   # Set the remote Docker host IP and port
-   DOCKER_HOST="192.168.1.100:2375"
-   
-   # Add the plugin to your status line
-   set -g status-right '#(~/.tmux/plugins/tmux-docker/tmux-docker $DOCKER_HOST)'
+   ```bash
+   go mod tidy
    ```
 
-   Replace `192.168.1.100:2375` with the IP address and port of your remote Docker host.
+3. Create a `.env` file in the root directory of the project with the following variables:
 
-   You can also add it to the left side of the status bar if preferred:
-
-   ```
-   set -g status-left '#(~/.tmux/plugins/tmux-docker/tmux-docker $DOCKER_HOST)'
-   ```
-
-4. Reload tmux configuration:
-
-   ```
-   tmux source-file ~/.tmux.conf
+   ```dotenv
+   DOCKER_USER=user         # SSH username
+   REMOTE_SERVER_IP=192.168.1.19   # IP or hostname of the remote server
+   DOCKER_PASSWORD=password # SSH user's password
    ```
 
-## Remote Docker Configuration
+4. Build the CLI:
 
-To allow the plugin to connect to a remote Docker host, you need to configure the Docker daemon on the remote server to accept API requests:
-
-1. On the remote server, edit the Docker daemon configuration file (usually `/etc/docker/daemon.json`):
-
-   ```json
-   {
-     "hosts": ["tcp://0.0.0.0:2375", "unix:///var/run/docker.sock"]
-   }
+   ```bash
+   go build -o docker-status
    ```
-
-   This allows Docker to accept connections on all network interfaces on port 2375.
-
-2. Restart the Docker service:
-
-   ```
-   sudo systemctl restart docker
-   ```
-
-**Note:** Exposing the Docker API like this can be a security risk. Ensure you have proper firewall rules in place and consider using TLS for encryption.
 
 ## Usage
 
-Once installed and configured, the plugin will automatically start displaying running container names from the remote Docker host in your tmux status bar. The list will refresh every 10 seconds.
+Run the CLI with the credentials specified in the `.env` file. Ensure that `tmux` is running:
 
-## Configuration
-
-### Catppuccin Theme Integration
-
-If you're using the Catppuccin theme, you can integrate the plugin by adding the following to your theme configuration:
-
-```
-set -g @catppuccin_status_modules_right "... docker ..."
-set -g @catppuccin_docker_color "$thm_cyan"
-set -g @catppuccin_docker_icon "🐳"
+```bash
+./docker-status
 ```
 
-Replace `...` with your other desired modules. Adjust the color and icon as needed.
-
-Then, in your `~/.tmux.conf`, add:
+### Example of the output displayed in the `tmux` status bar:
 
 ```
-set -g status-right '#{docker}'
+Total: 5 | Up: 3 | Down: 1 | Died: 1
 ```
 
-## Building from Source
+## Code Structure
 
-To build the plugin from source:
+- **`main.go`**: The main file that contains the logic to connect to the remote server, retrieve Docker information, and display the status in `tmux`.
+- **Main Functions**:
+  - `getServerFromEnv`: Reads connection credentials from the `.env` file.
+  - `connectToServer`: Connects to the remote server via SSH.
+  - `getDockerInfo`: Executes the `docker ps -a` command on the remote server.
+  - `parseDockerOutput`: Parses the Docker output and counts total containers, active, inactive, and dead containers.
+  - `displayToTmux`: Updates the `tmux` status bar with the container information.
 
-1. Navigate to the plugin directory:
+## Contributions
 
-   ```
-   cd /wks/cavelab/tmux-docker
-   ```
-
-2. Build the Go binary:
-
-   ```
-   go build -o tmux-docker
-   ```
+Feel free to submit pull requests with improvements, bug fixes, or new features.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
