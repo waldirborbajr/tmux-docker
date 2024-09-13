@@ -1,47 +1,48 @@
-.PHONY: all build install clean uninstall
+# Define variables for project settings
+OUTPUT ?= ./bin
+BINARY_NAME ?= tmux-docker         # Name of the output binary (default: myapp)
+INSTALL_DIR ?= ~/.local/bin        # Directory to install the binary (default: /usr/local/bin)
+TARGET_OS ?= linux                 # Target OS (default: linux)
+TARGET_ARCH ?= amd64               # Target architecture (default: amd64)
+SOURCE_DIR ?= main.go              # Directory containing main.go or main package
 
-BINARY := tmux-docker
-INSTALL_DIR=${HOME}/.tmux/plugins/tmux-docker
-SRC := main.go
-OUT_DIR := ./bin
-GO_FLAGS := -ldflags="-s -w"  # Strip debug information, reduce binary size
-LDFLAGS := -buildmode=pie     # Position-independent executable for security
-GCFLAGS := -trimpath           # Reduce paths in binary for smaller size
+# Go environment
+GO = go
+GO_BUILD = $(GO) build
+GO_INSTALL = install
+GO_CLEAN = clean
 
-# Optimization flags
-# LDFLAGS=-s -w -extldflags "-static"
+# Compiler and linker flags
+DEV_FLAGS = -gcflags="all=-N -l"                             # Development flags (no optimization, with debug info)
+PROD_FLAGS = -ldflags="-s -w" -trimpath -buildmode=pie       # Production flags (small size, high performance)
+PROD_GOENV = GOOS=$(TARGET_OS) GOARCH=$(TARGET_ARCH) CGO_ENABLED=0 # Environment for production targeting Linux, disabling CGO
 
-all: devbuild
+# Build for development
+dev: 
+	@echo "Building for development..."
+	$(GO_BUILD) $(DEV_FLAGS) -o $(OUTPUT)/$(BINARY_NAME) $(SOURCE_DIR)
 
-devbuild:
-	@echo "Building $(BINARY) without optimizations..."
-	GOOS=linux GOARCH=amd64 go build -o $(OUT_DIR)/$(BINARY) $(SRC)
+# Build for production targeting Linux
+prod:
+	@echo "Building for production targeting Linux..."
+	$(PROD_GOENV) $(GO_BUILD) $(PROD_FLAGS) -o $(OUTPUT)/$(BINARY_NAME) $(SOURCE_DIR)
 
-prodbuild:
-	@echo "Building $(BINARY) with optimizations..."
-	GOOS=linux GOARCH=amd64 go build $(GO_FLAGS) $(GCFLAGS) $(LDFLAGS) -o $(OUT_DIR)/$(BINARY) $(SRC)
+# Install the binary to the system (default: /usr/local/bin)
+install:
+	@echo "Installing $(BINARY_NAME) to $(INSTALL_DIR)..."
+	$(GO_INSTALL) -m 755 $(OUTPUT)/$(BINARY_NAME) $(INSTALL_DIR)
 
-	# CGO_ENABLED=0 GOOS=linux go build -o $(BINARY_NAME) \
-	# 	$(GO_FLAGS) \
-	# 	-ldflags '$(LDFLAGS)' \
-	# 	-a -installsuffix cgo
+# Uninstall the binary
+uninstall:
+	@echo "Removing $(INSTALL_DIR)/$(BINARY_NAME)..."
+	rm -f $(INSTALL_DIR)/$(BINARY_NAME)
 
-prodinstall: prodbuild
-	@echo "Installing production version..."
-	mkdir -p $(INSTALL_DIR)
-	cp $(OUT_DIR)/$(BINARY) $(INSTALL_DIR)/
-	cp tmux-docker.tmux $(INSTALL_DIR)/
-
-devinstall: devbuild
-	@echo "Installing development version..."
-	mkdir -p $(INSTALL_DIR)
-	cp $(OUT_DIR)/$(BINARY) $(INSTALL_DIR)/
-	cp tmux-docker.tmux $(INSTALL_DIR)/
-
+# Clean build artifacts
 clean:
 	@echo "Cleaning up..."
-	rm -rf $(OUT_DIR)/*
+	$(GO) $(GO_CLEAN)
+	rm -f $(OUTPUT)/$(BINARY_NAME)
 
-uninstall:
-	@echo "Uninstalling..."
-	rm -rf $(INSTALL_DIR)
+# Phony targets that don't represent actual files
+.PHONY: dev prod install uninstall clean
+
