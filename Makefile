@@ -28,7 +28,7 @@ prod:
 	$(PROD_GOENV) $(GO_BUILD) $(PROD_FLAGS) -o $(OUTPUT)/$(BINARY_NAME) $(SOURCE_DIR)
 
 # Install the binary to the system (default: /usr/local/bin)
-install: $(BINARY_NAME)
+install:
 	@echo "Installing $(BINARY_NAME) to $(INSTALL_DIR)..."
 	$(GO_INSTALL) -m 755 $(OUTPUT)/$(BINARY_NAME) $(INSTALL_DIR)
 
