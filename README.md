@@ -1,5 +1,7 @@
 # Tmux Docker Monitor
 
+[![codecov](https://codecov.io/github/waldirborbajr/tmux-docker/graph/badge.svg?token=F5A3EQ6RW5)](https://codecov.io/github/waldirborbajr/tmux-docker)
+
 This Go application monitors Docker containers on a remote server and displays their status in the Tmux status bar.
 
 ## Recent Changes
