@@ -6,78 +6,79 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/ssh"
 )
 
-// Função principal
+// Main function
 func main() {
-	// Carregar as configurações do servidor e senha do arquivo .env
+	// Load server configuration and password from .tmux-docker-env file
 	server, password := getServerFromEnv()
-
-	// Conectar ao servidor remoto via SSH
+	// Connect to the remote server via SSH
 	client, session, err := connectToServer(server, password)
 	if err != nil {
-		log.Fatalf("Falha ao conectar ao servidor: %v", err)
+		log.Fatalf("Failed to connect to server: %v", err)
 	}
 	defer client.Close()
 	defer session.Close()
-
-	// Executar o comando Docker e obter a saída
+	// Execute Docker command and get output
 	output, err := getDockerInfo(session)
 	if err != nil {
-		log.Fatalf("Falha ao obter informações do Docker: %v", err)
+		log.Fatalf("Failed to get Docker information: %v", err)
 	}
-
-	// Analisar a saída do Docker e contar os containers em diferentes estados
+	// Parse Docker output and count containers in different states
 	totalContainers, upContainers, downContainers, diedContainers := parseDockerOutput(output)
-
-	// Exibir as informações na barra de status do tmux
+	// Display information in tmux status bar
 	displayToTmux(totalContainers, upContainers, downContainers, diedContainers)
 }
 
-// Função para carregar o usuário, IP do servidor e senha a partir do .env
+// Function to load user, server IP, and password from .tmux-docker-env
 func getServerFromEnv() (string, string) {
-	// Carregar as variáveis do arquivo .env
-	err := godotenv.Load(".env")
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("Erro ao carregar o arquivo .env: %v", err)
+		log.Fatalf("Error getting user's home directory: %v", err)
 	}
 
-	// Pegar o usuário, IP do servidor e senha do .env
+	// Load variables from .tmux-docker-env file
+	err = godotenv.Load(filepath.Join(homeDir, ".tmux-docker-env"))
+	if err != nil {
+		log.Fatalf("Error loading .tmux-docker-env file: %v", err)
+	}
+
+	// Get user, server IP, and password from .tmux-docker-env
 	user := os.Getenv("DOCKER_USER")
 	serverIP := os.Getenv("REMOTE_SERVER_IP")
 	password := os.Getenv("DOCKER_PASSWORD")
-
 	if user == "" || serverIP == "" || password == "" {
-		log.Fatalf("Variáveis de ambiente DOCKER_USER, REMOTE_SERVER_IP ou DOCKER_PASSWORD não estão definidas no arquivo .env")
+		log.Fatalf("Environment variables DOCKER_USER, REMOTE_SERVER_IP, or DOCKER_PASSWORD are not set in .tmux-docker-env file")
 	}
 
-	// Retornar o formato user@serverIP e a senha
+	// Return the format user@serverIP and password
 	return user + "@" + serverIP, password
 }
 
-// Função para conectar ao servidor via SSH
+// Function to connect to server via SSH
 func connectToServer(serverWithUser, password string) (*ssh.Client, *ssh.Session, error) {
-	// Separar o usuário do IP do servidor
+	// Separate user from server IP
 	parts := strings.Split(serverWithUser, "@")
 	if len(parts) != 2 {
-		return nil, nil, fmt.Errorf("formato inválido para serverWithUser: %s", serverWithUser)
+		return nil, nil, fmt.Errorf("invalid format for serverWithUser: %s", serverWithUser)
 	}
 	user := parts[0]
 	serverIP := parts[1]
 
 	sshConfig := &ssh.ClientConfig{
-		User: user, // Usar apenas o usuário
+		User: user, // Use only the user
 		Auth: []ssh.AuthMethod{
-			ssh.Password(password), // Usamos a senha do arquivo .env
+			ssh.Password(password), // We use the password from .tmux-docker-env file
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	// Conectar usando apenas o IP do servidor
+	// Connect using only the server IP
 	client, err := ssh.Dial("tcp", serverIP+":22", sshConfig)
 	if err != nil {
 		return nil, nil, err
@@ -92,7 +93,7 @@ func connectToServer(serverWithUser, password string) (*ssh.Client, *ssh.Session
 	return client, session, nil
 }
 
-// Função para executar o comando Docker no servidor remoto via SSH
+// Function to execute Docker command on remote server via SSH
 func getDockerInfo(session *ssh.Session) (string, error) {
 	var b bytes.Buffer
 	session.Stdout = &b
@@ -102,10 +103,10 @@ func getDockerInfo(session *ssh.Session) (string, error) {
 	return b.String(), nil
 }
 
-// Função para analisar a saída do Docker e contar os containers
+// Function to parse Docker output and count containers
 func parseDockerOutput(output string) (int, int, int, int) {
 	lines := strings.Split(output, "\n")
-	total := len(lines) - 1 // Remove a última linha vazia
+	total := len(lines) - 1 // Remove the last empty line
 	up, down, died := 0, 0, 0
 
 	for _, line := range lines {
@@ -121,10 +122,10 @@ func parseDockerOutput(output string) (int, int, int, int) {
 	return total, up, down, died
 }
 
-// Função para exibir os resultados na status bar do tmux
+// Function to display results in tmux status bar
 func displayToTmux(total, up, down, died int) {
 	cmd := exec.Command("tmux", "set-option", "-g", "status-right", fmt.Sprintf("Total: %d | Up: %d | Down: %d | Died: %d", total, up, down, died))
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Falha ao atualizar o tmux: %v", err)
+		log.Fatalf("Failed to update tmux: %v", err)
 	}
 }
