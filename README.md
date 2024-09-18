@@ -2,6 +2,10 @@
 
 # Tmux Docker Monitor
 
+<p align="center">
+  <img width="256" height="256" src="https://github.com/user-attachments/assets/6ede0ea1-383d-4d7b-914d-d56bca4fab4c" />
+</p>
+
 #### Under Construction ####
 
 [![codecov](https://codecov.io/github/waldirborbajr/tmux-docker/graph/badge.svg?token=F5A3EQ6RW5)](https://codecov.io/github/waldirborbajr/tmux-docker)
